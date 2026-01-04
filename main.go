@@ -14,49 +14,66 @@ type Product struct {
 	Price float64
 }
 
-func main() {
-	fmt.Println("Fruitshop started")
-
-	file, err := os.Open("values.txt")
+func buildinventory(path string) ([]Product, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return
+		// generic + underlying cause
+		return nil, fmt.Errorf("Please check the data source is correct: %w", err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-
 	products := []Product{}
 
-    for scanner.Scan() {
-        line := scanner.Text()
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
 
-        parts := strings.Split(line, ",")
-        if len(parts) != 2 {
-            // if its not whats expected move on
-            continue
-        }
+		parts := strings.Split(line, ",")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("Please check the data source is correct: line %d: expected format name,£price", lineNum)
+		}
 
-        name := strings.TrimSpace(parts[0])
+		name := strings.TrimSpace(parts[0])
+		if name == "" {
+			return nil, fmt.Errorf("Please check the data source is correct: line %d: product name is empty", lineNum)
+		}
 
-        priceStr := strings.TrimSpace(parts[1])
-        priceStr = strings.TrimPrefix(priceStr, "£")
+		pricePart := strings.TrimSpace(parts[1])
+		if !strings.HasPrefix(pricePart, "£") {
+			return nil, fmt.Errorf("Please check the data source is correct: line %d: price must start with £", lineNum)
+		}
 
-        price, err := strconv.ParseFloat(priceStr, 64)
-        if err != nil {
-            continue
-        }
+		priceStr := strings.TrimPrefix(pricePart, "£")
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			return nil, fmt.Errorf("Please check the data source is correct: line %d: invalid price %q: %w", lineNum, priceStr, err)
+		}
 
-        product := Product{
-            Name:  name,
-            Price: price,
-        }
+		products = append(products, Product{
+			Name:  name,
+			Price: price,
+		})
+	}
 
-        products = append(products, product)
-    }
-    fmt.Println("Printing Inventory:")
-    for _, p := range products {
-	    fmt.Printf("%s costs £%.2f\n", p.Name, p.Price)
-    }
+	// scanner-level error (I/O issues etc.)
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("Please check the data source is correct: %w", err)
+	}
+
+	return products, nil
 }
 
+
+func main() {
+	// start program 
+	fmt.Println("Fruitshop started")
+    fmt.Println("Printing Inventory:")
+	products, err := buildinventory("values.txt")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(products)
+}
