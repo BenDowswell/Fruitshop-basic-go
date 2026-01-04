@@ -14,6 +14,15 @@ type Product struct {
 	Price float64
 }
 
+func printInventory(products []Product) {
+    fmt.Println("Printing Inventory:") 
+    for _, p := range products { 
+        fmt.Printf("%s costs £%.2f\n", p.Name, p.Price) 
+    }
+}
+
+
+
 func buildinventory(path string) ([]Product, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -69,11 +78,11 @@ func buildinventory(path string) ([]Product, error) {
 func main() {
 	// start program 
 	fmt.Println("Fruitshop started")
-    fmt.Println("Printing Inventory:")
+    
 	products, err := buildinventory("values.txt")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(products)
+	printInventory(products)
 }
