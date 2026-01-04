@@ -33,6 +33,7 @@ func main() {
 
         parts := strings.Split(line, ",")
         if len(parts) != 2 {
+            // if its not whats expected move on
             continue
         }
 
