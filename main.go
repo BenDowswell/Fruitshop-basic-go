@@ -3,10 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
-    "strings"
-    "strconv"
 	"os"
-    
+	"strconv"
+	"strings"
 )
 
 type Product struct {
@@ -15,13 +14,11 @@ type Product struct {
 }
 
 func printInventory(products []Product) {
-    fmt.Println("Printing Inventory:") 
-    for _, p := range products { 
-        fmt.Printf("%s costs £%.2f\n", p.Name, p.Price) 
-    }
+	fmt.Println("Printing Inventory:")
+	for _, p := range products {
+		fmt.Printf("%s costs £%.2f\n", p.Name, p.Price)
+	}
 }
-
-
 
 func buildinventory(path string) ([]Product, error) {
 	file, err := os.Open(path)
@@ -74,15 +71,104 @@ func buildinventory(path string) ([]Product, error) {
 	return products, nil
 }
 
+func runCart(products []Product) {
+	reader := bufio.NewReader(os.Stdin)
+
+	cart := map[int]int{}
+	var total float64
+
+	for {
+		printMenu(products)
+		fmt.Print("Pick an item number, or 'q' to quit:")
+
+		input := readLine(reader)
+
+		if strings.EqualFold(input, "q") {
+			break
+		}
+
+		choice, err := strconv.Atoi(input)
+		if err != nil || choice < 1 || choice > len(products) {
+			fmt.Println("Please enter a valid item number.")
+			continue
+		}
+		// convert 1-based menu choice to 0-based slice index
+		idx := choice - 1
+
+		fmt.Printf("how many %s would you like to buy? ", products[idx].Name)
+		qtyStr := readLine(reader)
+		qty, err := strconv.Atoi(qtyStr)
+
+		if err != nil || qty <= 0 {
+			fmt.Println("Please enter a quantity greater than 0.")
+			continue
+		}
+
+		cart[idx] += qty
+		addedCost := float64(qty) * products[idx].Price
+		total += addedCost
+
+		fmt.Printf("Added %d x %s (£%.2f each). Cart total is now £%.2f\n",
+			qty, products[idx].Name, products[idx].Price, total)
+
+		fmt.Print("Add another item? (y/n): ")
+		again := readLine(reader)
+		if strings.EqualFold(again, "n") || strings.EqualFold(again, "no") {
+			break
+		}
+	}
+
+	// Checkout / summary
+	if len(cart) == 0 {
+		fmt.Println("\nYour cart is empty. Goodbye!")
+		return
+	}
+
+	fmt.Println("\nCart summary:")
+	for idx, p := range products {
+		qty := cart[idx]
+		if qty == 0 {
+			continue
+		}
+		line := float64(qty) * p.Price
+		fmt.Printf("- %d x %s = £%.2f\n", qty, p.Name, line)
+	}
+	fmt.Printf("Total: £%.2f\n", total)
+
+	fmt.Print("Would you like to pay? (yes/no): ")
+
+	pay := readLine(reader)
+
+	if strings.EqualFold(pay, "yes") || strings.EqualFold(pay, "y") {
+		fmt.Printf("Payment accepted. Final total is £%.2f\n", total)
+	} else {
+		fmt.Println("No problem — goodbye.")
+	}
+
+}
+
+func printMenu(products []Product) {
+	fmt.Println("\nInventory:")
+	for i, p := range products {
+		fmt.Printf("%d) %s - £%.2f\n", i+1, p.Name, p.Price)
+	}
+}
+
+func readLine(r *bufio.Reader) string {
+	s, _ := r.ReadString('\n')
+	return strings.TrimSpace(s)
+}
 
 func main() {
-	// start program 
+	// start program
 	fmt.Println("Fruitshop started")
-    
+
 	products, err := buildinventory("values.txt")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	printInventory(products)
+
+	runCart(products)
+
 }
